@@ -1,0 +1,59 @@
+name: easyback-production
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: easyback
+      POSTGRES_USER: easyback_admin
+      POSTGRES_PASSWORD: ${ADMIN_DB_PASSWORD:?Set separate database administrator password}
+      APP_DB_PASSWORD: ${DB_PASSWORD:?Set production DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-database.sh:/docker-entrypoint-initdb.d/10-app-user.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U easyback_admin -d easyback"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: ../backendjava
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/easyback
+      DB_USER: easyback
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Set production JWT_SECRET}
+      BOOTSTRAP_EMAIL: ${BOOTSTRAP_EMAIL:-}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
+      SECURE_COOKIES: "true"
+      API_DOCS_ENABLED: "false"
+      ALLOWED_ORIGINS: https://${EASYBACK_HOST:?Set private application hostname}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    environment:
+      EASYBACK_HOST: ${EASYBACK_HOST}
+    ports:
+      - "${LAN_BIND_IP:?Set trusted LAN interface IP}:443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

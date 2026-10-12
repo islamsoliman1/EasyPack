@@ -1,0 +1,32 @@
+{$EASYBACK_HOST} {
+    tls internal
+    encode zstd gzip
+    request_body {
+        max_size 11MB
+    }
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy same-origin
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Strict-Transport-Security "max-age=31536000"
+    }
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+    handle /actuator/* {
+        respond 404
+    }
+    handle /v3/* {
+        respond 404
+    }
+    handle /swagger-ui* {
+        respond 404
+    }
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        header Cache-Control "no-cache"
+        file_server
+    }
+}
