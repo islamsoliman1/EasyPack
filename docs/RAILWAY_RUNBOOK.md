@@ -112,24 +112,32 @@ owner still works after retirement. Do not seed a shared public administrator.
 
 ## Parent verification gate
 
-Current handoff status (2026-10-12): staging safety tests passed and allowlisted
-stage generation succeeded. The new focused Java security tests compiled during
-parent's Compose attempt, but were never executed. Maven is not on this preparation
-task's shell PATH. Parent's
-Docker image build and full Compose verification attempts both failed on
-containerd `meta.db` storage/input-output writes, so neither establishes an
-application pass or failure. With approximately 10 MB free on C: and 1.73 GB
-on E:, downloads, heavy builds and Docker retries are stopped. No destructive
-cleanup was performed. The image build, actual 512 MiB runtime behavior and
-PostgreSQL integration tests remain unverified. Parent/operator must resolve the
-storage issue and complete verification before deployment; no full-test pass is
-claimed here.
+Updated 2026-10-13: the earlier disk/containerd blocker was resolved for this run.
+25 unit/security tests, 79 PostgreSQL integration tests and 11 Edge browser tests
+passed. React and the final combined Docker image built successfully. The isolated
+512 MiB rehearsal passed HTTPS API, cookie/CSRF, attachment/report workload,
+bootstrap retirement and persistence checks; its final peak was 419 MiB.
+The combined frontend also passed login/deep-link reload and desktop/tablet checks
+over loopback HTTP. Kaspersky blocked the local self-signed browser certificate;
+no antivirus settings or machine certificate trust were changed. Public Railway
+HTTPS browser verification is still required. See [verification results](RAILWAY_VERIFICATION.md).
 
 Before source publication/deployment, parent runs focused unit tests, staging safety tests, frontend
 build, full existing verification and a Docker build as appropriate. Suggested
 focused commands: `mvn -f backendjava/pom.xml -Dtest=RailwaySpaSecurityTest test`
-and `pwsh -NoProfile -File scripts/tests/Railway-Stage.Tests.ps1`. No tests require
-a running server or database. Parent owns live PostgreSQL/integration tests.
+and `pwsh -NoProfile -File scripts/tests/Railway-Stage.Tests.ps1`. Those two focused
+commands do not require a running server or database. Full integration tests use
+the dedicated test PostgreSQL service.
+
+Run `node scripts/tests/Railway-Runtime.mjs` from the repository root to repeat the
+isolated runtime rehearsal. It requires installed frontend dependencies, Edge,
+Docker and the local `postgres:17-alpine`, `easyback-railway:demo` and
+`easyback-web:pilot` images. It creates fresh randomly named test containers and
+a network, binds only loopback ports 18443/18780, generates in-memory secrets,
+and removes only its own containers/anonymous volumes/network afterward.
+It never reads `.env` or accesses the development/company database. The two
+allowed origins and HTTP browser endpoint are rehearsal-only; keep the real
+deployment configured for its single exact HTTPS origin.
 
 After deploy, verify HTTPS and `/actuator/health/readiness` returns 200 with DB
 ready. The readiness group includes the database. Only health is exposed by the

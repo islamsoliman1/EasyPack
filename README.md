@@ -123,5 +123,7 @@ See `docs/EASYBACK_IMPLEMENTATION_PLAN_AR.md` and `docs/PILOT_SCOPE_AR.md` for s
 A separate combined React/Spring Boot image is defined in `Dockerfile.Railway`
 and `railway.json`. Follow [Railway runbook](docs/RAILWAY_RUNBOOK.md) for an
 isolated database, private bootstrap credentials and deployment verification.
-Railway deployment and the combined image's runtime checks are not yet complete.
+Local combined-image checks passed, including a 512 MiB runtime rehearsal;
+see [verification results](docs/RAILWAY_VERIFICATION.md). Public Railway deployment
+and browser HTTPS verification against its real certificate remain outstanding.
 Never publish company data, environment secrets, backups or unreviewed screenshots.

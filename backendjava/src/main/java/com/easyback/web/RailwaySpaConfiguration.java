@@ -1,5 +1,7 @@
 package com.easyback.web;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -45,9 +47,11 @@ public class RailwaySpaConfiguration implements WebMvcConfigurer {
     @RequestMapping(method = {RequestMethod.GET, RequestMethod.HEAD}, value = {"/", "/index.html", "/users", "/roles",
         "/machine-models", "/parts", "/machines", "/boms", "/orders", "/warehouse", "/preparations", "/raw-stock",
         "/tasks", "/defects", "/operations", "/operations/templates", "/shifts", "/reports", ORDER, OPERATION, ASSEMBLY})
-    public ResponseEntity<Resource> index() {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.TEXT_HTML)
-            .body(new ClassPathResource("static/index.html"));
+    public ResponseEntity<Resource> index(HttpServletRequest request) throws IOException {
+        var resource = new ClassPathResource("static/index.html");
+        var response = ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.TEXT_HTML)
+            .contentLength(resource.contentLength());
+        return request.getMethod().equals("HEAD") ? response.build() : response.body(resource);
     }
 
     @Override public void addResourceHandlers(ResourceHandlerRegistry registry) {

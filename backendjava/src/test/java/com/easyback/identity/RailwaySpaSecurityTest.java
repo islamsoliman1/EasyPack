@@ -90,7 +90,9 @@ class RailwaySpaSecurityTest {
                 var result = f.mvc.perform(get(path)).andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith("text/html"))
                     .andExpect(content().string(org.hamcrest.Matchers.containsString("railway-test-index"))).andReturn();
                 assertNull(result.getResponse().getForwardedUrl());
-                f.mvc.perform(head(path)).andExpect(status().isOk()).andExpect(content().bytes(new byte[0]));
+                f.mvc.perform(head(path)).andExpect(status().isOk()).andExpect(content().bytes(new byte[0]))
+                    .andExpect(header().string("Content-Type", result.getResponse().getContentType()))
+                    .andExpect(header().string("Content-Length", result.getResponse().getHeader("Content-Length")));
             }
         }
     }
