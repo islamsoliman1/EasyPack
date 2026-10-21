@@ -15,6 +15,9 @@ import { OrdersPage, OrderPage } from './OrdersPage';
 import { WarehousePage, PreparationsPage } from './Warehouse';
 import { api, ApiError, forgetSession, login, logout, refreshSession, type User, type Role } from './api';
 import './styles.css';
+import { NotificationProvider } from './notifications/useNotifications';
+import { NotificationBell } from './notifications/NotificationBell';
+const NotificationsPage = React.lazy(() => import('./notifications/NotificationsPage'));
 
 const RawStockPage = React.lazy(() => import('./RawStock').then(m => ({ default: m.RawStockPage })));
 const TasksPage = React.lazy(() => import('./Assembly').then(m => ({ default: m.TasksPage })));
@@ -191,7 +194,7 @@ function Shell() {
     {can(user, 'shifts.view') && <NavLink to="/shifts"><ClipboardList size={19} />الورديات والاستراحات</NavLink>}
     {can(user, 'reports.view') && <NavLink to="/reports"><ListTree size={19} />متابعة المصنع والتقارير</NavLink>}
     {can(user, 'users.view') && <NavLink to="/users"><Users size={19} />المستخدمون</NavLink>}{can(user, 'roles.view') && <NavLink to="/roles"><ShieldCheck size={19} />الأدوار والصلاحيات</NavLink>}</nav><div className="sidebar-bottom"><span>إدارة المصنع</span><small dir="ltr">EPE · EasyPack</small></div></aside>
-    <div className="main-column"><header className="topbar"><span>الإدارة الداخلية</span><div><span className="account-name">{user.displayName}</span><ThemeToggle /><IconButton label="تسجيل الخروج" onClick={() => void exit()}><LogOut size={19} /></IconButton></div></header><main className="workspace"><Routes><Route path="/" element={<Home />} /><Route path="/users" element={<UsersPage />} /><Route path="/roles" element={<RolesPage />} /><Route path="/machine-models" element={<ModelsPage />} /><Route path="/parts" element={<PartsPage />} /><Route path="/machines" element={<MachinesPage />} /><Route path="/machines/:id/assembly" element={<React.Suspense fallback={<Busy />}><MachineAssemblyPage /></React.Suspense>} /><Route path="/boms" element={<BomsPage />} /><Route path="/orders" element={<OrdersPage />} /><Route path="/orders/:id" element={<OrderPage />} /><Route path="/warehouse" element={<WarehousePage />} /><Route path="/preparations" element={<PreparationsPage />} /><Route path="/raw-stock" element={<React.Suspense fallback={<Busy />}><RawStockPage /></React.Suspense>} /><Route path="/tasks" element={<React.Suspense fallback={<Busy />}><TasksPage /></React.Suspense>} /><Route path="/defects" element={<React.Suspense fallback={<Busy />}><DefectsPage /></React.Suspense>} /><Route path="/operations" element={<React.Suspense fallback={<Busy />}><OperationsPage /></React.Suspense>} /><Route path="/operations/templates" element={<React.Suspense fallback={<Busy />}><TemplatesPage /></React.Suspense>} /><Route path="/operations/:id" element={<React.Suspense fallback={<Busy />}><OperationsOrderPage /></React.Suspense>} /><Route path="/shifts" element={<React.Suspense fallback={<Busy />}><ShiftsPage /></React.Suspense>} /><Route path="/reports" element={<React.Suspense fallback={<Busy />}><ReportsPage /></React.Suspense>} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main><footer className="app-footer"><span dir="ltr">EPE · EasyPack</span><span>إدارة المصنع</span></footer></div>
+    <div className="main-column"><header className="topbar"><span>الإدارة الداخلية</span><div><span className="account-name">{user.displayName}</span><NotificationBell /><ThemeToggle /><IconButton label="تسجيل الخروج" onClick={() => void exit()}><LogOut size={19} /></IconButton></div></header><main className="workspace"><Routes><Route path="/notifications" element={<React.Suspense fallback={<Busy />}><NotificationsPage /></React.Suspense>} /><Route path="/" element={<Home />} /><Route path="/users" element={<UsersPage />} /><Route path="/roles" element={<RolesPage />} /><Route path="/machine-models" element={<ModelsPage />} /><Route path="/parts" element={<PartsPage />} /><Route path="/machines" element={<MachinesPage />} /><Route path="/machines/:id/assembly" element={<React.Suspense fallback={<Busy />}><MachineAssemblyPage /></React.Suspense>} /><Route path="/boms" element={<BomsPage />} /><Route path="/orders" element={<OrdersPage />} /><Route path="/orders/:id" element={<OrderPage />} /><Route path="/warehouse" element={<WarehousePage />} /><Route path="/preparations" element={<PreparationsPage />} /><Route path="/raw-stock" element={<React.Suspense fallback={<Busy />}><RawStockPage /></React.Suspense>} /><Route path="/tasks" element={<React.Suspense fallback={<Busy />}><TasksPage /></React.Suspense>} /><Route path="/defects" element={<React.Suspense fallback={<Busy />}><DefectsPage /></React.Suspense>} /><Route path="/operations" element={<React.Suspense fallback={<Busy />}><OperationsPage /></React.Suspense>} /><Route path="/operations/templates" element={<React.Suspense fallback={<Busy />}><TemplatesPage /></React.Suspense>} /><Route path="/operations/:id" element={<React.Suspense fallback={<Busy />}><OperationsOrderPage /></React.Suspense>} /><Route path="/shifts" element={<React.Suspense fallback={<Busy />}><ShiftsPage /></React.Suspense>} /><Route path="/reports" element={<React.Suspense fallback={<Busy />}><ReportsPage /></React.Suspense>} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main><footer className="app-footer"><span dir="ltr">EPE · EasyPack</span><span>إدارة المصنع</span></footer></div>
   </div>;
 }
 function Application() {
@@ -217,7 +220,16 @@ function Application() {
   if (!user) return <Login success={u => { client.clear(); setUser(u); navigate('/', { replace: true }); }} />;
   const exit = async () => { try { await logout(); } finally { clear(); } };
   if (user.mustChangePassword) return <main className="password-page"><div className="password-header"><Brand /><ThemeToggle /></div><h1>تغيير كلمة المرور</h1><PasswordForm complete={async () => clear()} /><button className="quiet" onClick={() => void exit()}><LogOut size={17} />تسجيل الخروج</button></main>;
-  return <Auth.Provider value={{ user, reload, exit }}><Shell /></Auth.Provider>;
+  const scope = JSON.stringify([user.id, [...user.permissions].sort()]);
+  return <AuthorizedWorkspace key={scope} user={user} reload={reload} exit={exit} />;
 }
-const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 10000 } } });
+function AuthorizedWorkspace({ user, reload, exit }: { user: User; reload: () => Promise<void>; exit: () => Promise<void> }) {
+  // A new authorization scope owns a fresh cache and fresh screen/dialog state.
+  // Late responses from the previous scope can never populate this client.
+  const [client] = useState(createQueryClient);
+  useEffect(() => () => client.clear(), [client]);
+  return <QueryClientProvider client={client}><Auth.Provider value={{ user, reload, exit }}><NotificationProvider><Shell /></NotificationProvider></Auth.Provider></QueryClientProvider>;
+}
+function createQueryClient() { return new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 10000 } } }); }
+const client = createQueryClient();
 createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={client}><BrowserRouter><Application /></BrowserRouter></QueryClientProvider></React.StrictMode>);

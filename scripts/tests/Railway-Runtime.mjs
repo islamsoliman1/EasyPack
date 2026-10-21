@@ -15,6 +15,7 @@ const directory = join(root, '.local', id);
 const origin = 'https://localhost:18443';
 // HTTPS API checks remain separate; antivirus blocks the local self-signed browser certificate.
 const browserOrigin = 'http://localhost:18780';
+const appImage = process.env.EASYBACK_RAILWAY_IMAGE ?? 'easyback-railway:demo';
 const password = `Initial-${randomBytes(18).toString('hex')}!`;
 const changed = `Changed-${randomBytes(18).toString('hex')}!`;
 const environment = {
@@ -43,7 +44,7 @@ function startApp(bootstrap) {
   environment.BOOTSTRAP_EMAIL = bootstrap ? 'owner@railway-test.example.invalid' : '';
   const keys = ['PORT', 'DB_URL', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET', 'ALLOWED_ORIGINS', 'BOOTSTRAP_EMAIL', 'BOOTSTRAP_PASSWORD'];
   run(names.app, ['--network-alias', 'app', '--memory', '512m', '--memory-swap', '512m',
-    ...keys.flatMap(key => ['--env', key]), 'easyback-railway:demo']);
+    ...keys.flatMap(key => ['--env', key]), appImage]);
 }
 async function ready() {
   for (let attempt = 0; attempt < 120; attempt++) {
@@ -77,7 +78,7 @@ function memory() {
   return Math.round(peak / 1024 / 1024);
 }
 try {
-  for (const image of ['postgres:17-alpine', 'easyback-railway:demo', 'easyback-web:pilot']) docker('image', 'inspect', image);
+  for (const image of ['postgres:17-alpine', appImage, 'easyback-web:pilot']) docker('image', 'inspect', image);
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, 'Caddyfile'), 'https://localhost {\n tls internal\n reverse_proxy app:8087\n}\nhttp://localhost {\n reverse_proxy app:8087\n}\n');
   docker('network', 'create', id); networkCreated = true;
@@ -90,7 +91,7 @@ try {
   assert.equal(Number(docker('inspect', '--format', '{{.HostConfig.Memory}}', names.app)), 512 * 1024 * 1024);
   const paths = ['/', '/index.html', '/users', '/roles', '/machine-models', '/parts', '/machines', '/boms',
     '/orders', '/warehouse', '/preparations', '/raw-stock', '/tasks', '/defects', '/operations',
-    '/operations/templates', '/shifts', '/reports', `/orders/${randomUUID()}`,
+    '/operations/templates', '/shifts', '/reports', '/notifications', `/orders/${randomUUID()}`,
     `/operations/${randomUUID()}`, `/machines/${randomUUID()}/assembly`];
   for (const path of paths) {
     const get = await status(await client.get(path), 200);
@@ -112,6 +113,7 @@ try {
     assert.ok(!(await response.text()).includes('<!doctype html>'), `SPA swallowed ${path}`);
   }
   for (const path of ['/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/auth/logout']) await status(await client.post(path), 403);
+  for (const path of ['/api/v1/notifications', '/api/v1/notifications/unread-count']) await status(await client.get(path), 401);
   await status(await client.get('/api/v1/auth/csrf', { headers: { Origin: 'https://untrusted.example.invalid' } }), 403);
   let token = await login(password);
   await status(await client.get('/api/v1/machine-models', { headers: { Authorization: `Bearer ${token}` } }), 403);
@@ -132,6 +134,17 @@ try {
     headers: { Authorization: `Bearer ${token}`, 'X-XSRF-TOKEN': await csrf() },
     multipart: { file: { name: 'synthetic-memory-fixture.pdf', mimeType: 'application/pdf', buffer: pdf } },
   }), 201)).json();
+  // A metadata list must stay small even when its resource owns about 210 MiB of files.
+  for (let index = 0; index < 20; index++) {
+    const bytes = Buffer.from(pdf); bytes[100] = 65 + index;
+    await status(await client.post(`/api/v1/files?kind=PART&targetId=${part.id}`, {
+      headers: { Authorization: `Bearer ${token}`, 'X-XSRF-TOKEN': await csrf() },
+      multipart: { file: { name: `large-metadata-fixture-${index}.pdf`, mimeType: 'application/pdf', buffer: bytes } },
+    }), 201);
+  }
+  const metadata = await status(await client.get(`/api/v1/files?kind=PART&targetId=${part.id}`, { headers: { Authorization: `Bearer ${token}` } }), 200);
+  const metadataBytes = (await metadata.body()).length;
+  assert.equal((await metadata.json()).length, 21); assert.ok(metadataBytes < 12000);
   const report = '/api/v1/reports?from=2026-01-01&to=2026-12-31';
   for (let round = 0; round < 3; round++) {
     await Promise.all(Array.from({ length: 6 }, (_, i) => client.get(i % 2 ? report : `/api/v1/files/${attachment.id}`, { headers: { Authorization: `Bearer ${token}` } }).then(response => status(response, 200))));
@@ -162,6 +175,12 @@ try {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Horizontal page overflow');
       assert.ok(await page.locator('img[src="/brand-mark.svg"]').first().evaluate(image => image.complete && image.naturalWidth > 0), 'Brand image did not render');
       await page.screenshot({ path: join(screenshots, `railway-browser-${width}.png`), fullPage: true });
+      await page.goto('/notifications');
+      await expect(page.getByRole('heading', { name: 'الإشعارات', exact: true })).toBeVisible();
+      await page.reload();
+      await expect(page.getByRole('heading', { name: 'الإشعارات', exact: true })).toBeVisible();
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Notification page overflow');
+      await page.screenshot({ path: join(screenshots, `railway-notifications-${width}.png`), fullPage: true });
     }
     assert.deepEqual(browserErrors, []);
     await context.close();
@@ -188,7 +207,8 @@ try {
   console.log(JSON.stringify({ passed: true, routes: paths.length, nonRoot: true, runtimeLimitMiB: 512, firstPeakMiB: firstPeak,
     restartedPeakMiB: memory(), https: true, secureCookies: true, csrf: true, bootstrapRetired: true,
     persistedModel: true, persistedAttachmentBytes: pdf.length, browserLoginAndReload: true,
-    desktopTablet: true, browserTransport: 'loopback-http', publicRailwayTested: false }));
+    desktopTablet: true, notificationDirectReload: true, metadataAttachments: 21, metadataBytes,
+    browserTransport: 'loopback-http', publicRailwayTested: false }));
 } finally {
   if (client) await client.dispose();
   for (const name of [...created].reverse()) {

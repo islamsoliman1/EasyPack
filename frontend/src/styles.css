@@ -228,6 +228,25 @@ legend { padding-inline-end: 12px; font-size: 13px; font-weight: 600; }
 .catalog-table td:nth-child(2) { min-width: 170px; }
 .catalog-table .record-code { overflow-wrap: anywhere; }
 @media (max-width: 800px) { .report-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } .file-list li { flex-wrap: wrap; } }
+.notification-bell { position: relative; display: flex; align-items: center; }
+.notification-count { position: absolute; inset-inline-end: -4px; top: -5px; min-width: 18px; padding: 1px 4px; border-radius: 10px; background: #b42318; color: white; font-size: 11px; }
+.notification-popover { position: absolute; z-index: 30; top: calc(100% + 12px); inset-inline-end: 0; width: min(400px, calc(100vw - 32px)); max-height: 75vh; overflow-y: auto; display: block !important; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 12px 32px #0003; }
+.notification-heading { display: flex; align-items: center; justify-content: space-between; }
+.notification-heading h2 { margin: 0; font-size: 18px; }
+.notification-items { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.notification-items li { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.notification-items a { display: grid; gap: 5px; color: inherit; text-decoration: none; }
+.notification-items a:hover strong { text-decoration: underline; }
+.notification-items time { font-size: 12px; color: var(--muted); }
+.notification-items .badge { justify-self: start; }
+.notification-unread { border-inline-start: 4px solid #b42318 !important; }
+.notification-info { color: #175cd3; background: #eff8ff; }
+.notification-warning { color: #93370d; background: #fffaeb; }
+.notification-urgent { color: #b42318; background: #fef3f2; }
+.notification-retry { position: fixed; z-index: 40; top: 76px; inset-inline-end: 20px; max-width: calc(100vw - 40px); padding: 12px; border: 1px solid #b42318; background: var(--surface); border-radius: 8px; }
+.notifications-page { max-width: 900px; margin-inline: auto; }
+.preparation-selected { display: grid; gap: 12px; }
+@media (max-width: 600px) { .notification-popover { position: fixed; top: 70px; inset-inline: 16px; } }
 @media print {
   @page { size: A4 landscape; margin: 10mm; }
   aside, .topbar, .app-footer, .report-page .bom-actions, .report-filters, .report-screen { display: none !important; }

@@ -1,6 +1,6 @@
 # Remaining Pilot Delivery
 
-Updated 2026-10-12. This supersedes older references to shifts, files, templates and reports as future work.
+Updated 2026-10-17. This supersedes older references to shifts, files, templates, reports and in-app notifications as future work.
 
 ## Implemented
 
@@ -17,7 +17,9 @@ Updated 2026-10-12. This supersedes older references to shifts, files, templates
 - Reusable, versioned and archivable Operations checklists. Starting a trial copies selected criteria, so later template changes cannot rewrite a trial. No technical acceptance values were invented or pre-approved.
 - Manager report by delivery-date range: assembly progress, shortages, defects, expected/recorded time, completion and actual delivery. Assembly, completion and delivery lateness are distinct fields; cancelled orders do not inflate outstanding shortages.
 - UTF-8 CSV with spreadsheet-formula protection and browser print/PDF layout for the complete filtered rows. This is not native XLSX or a server-generated PDF export.
-- Fifteen-second report/detail refresh. This pilot does not claim WebSocket notifications, chat or guaranteed event delivery.
+- Fifteen-second report/detail refresh, plus a persistent personal notification inbox and header bell with 30-second foreground polling. Workflow events and recipient rows commit with the business action. Current permissions and task-assignment occurrence are rechecked for every inbox operation; owner summaries have an authorized order fallback.
+- Task assignment, order release/shortage, preparation request/reopen/fulfillment, defect report/quarantine/repair completion, testing readiness, failed/aborted/invalidated trials and order completion notifications. Capability-based routing suppresses the actor and logs events with no eligible recipient; no role grants are added.
+- UTC-clock delivery reminders run every 15 minutes, once within 24 hours and once overdue; completed-undelivered orders remain eligible. Draft/cancelled/delivered orders are excluded. The UI displays Cairo times. There is no WebSocket, email, push, SMS or closed-browser delivery.
 
 ## Time Boundaries
 

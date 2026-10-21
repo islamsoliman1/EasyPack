@@ -81,9 +81,9 @@ function OrderDetail({ id }: { id: string }) {
   return <><Link className="inline-link" to="/orders"><ArrowRight size={17} />طلبات التصنيع</Link>
     <div className="page-heading order-heading"><div><div className="eyebrow" dir="ltr">{order.code}</div><h1>{order.title}</h1></div><div className="bom-actions">
       <IconButton label="تحديث الطلب" disabled={query.isFetching || pending} onClick={() => void query.refetch()}><RefreshCw size={18} /></IconButton>
-      {draft && writePermissions.every(p => can(user, p)) && <button onClick={() => setEditing(true)}><Pencil size={17} />تعديل المسودة</button>}
-      {draft && global && can(user, 'orders.release') && <button className="primary" onClick={() => { setError(null); setAction({ kind: 'release', version: order.version }); }}><Send size={17} />فتح الطلب للعمل</button>}
-      {!['CANCELLED', 'TESTING', 'COMPLETED'].includes(order.status) && global && can(user, 'orders.cancel') && <button onClick={() => { setError(null); setReason(''); setAction({ kind: 'cancel', version: order.version }); }}><X size={17} />إلغاء الطلب</button>}
+      {draft && writePermissions.every(p => can(user, p)) && <button disabled={pending || query.isFetching} onClick={() => setEditing(true)}><Pencil size={17} />تعديل المسودة</button>}
+      {draft && global && can(user, 'orders.release') && <button className="primary" disabled={pending || query.isFetching} onClick={() => { setError(null); setAction({ kind: 'release', version: order.version }); }}><Send size={17} />فتح الطلب للعمل</button>}
+      {!['CANCELLED', 'TESTING', 'COMPLETED'].includes(order.status) && global && can(user, 'orders.cancel') && <button disabled={pending || query.isFetching} onClick={() => { setError(null); setReason(''); setAction({ kind: 'cancel', version: order.version }); }}><X size={17} />إلغاء الطلب</button>}
     </div></div>
     {notice && <div className="notice" role="status"><Check size={17} />{notice}</div>}
     <dl className="order-meta"><div><dt>الحالة</dt><dd><Status value={order.status} /></dd></div><div><dt>الماكينة</dt><dd>{order.machineName}<span className="record-code" dir="ltr">{order.machineSerial}</span></dd></div>

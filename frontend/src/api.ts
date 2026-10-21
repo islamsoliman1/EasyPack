@@ -54,14 +54,14 @@ export async function login(email: string, password: string) {
   access = session.accessToken; return session;
 }
 export async function api<T>(path: string, method = 'GET', body?: unknown, binary = false): Promise<T> {
-  try { return await raw<T>(path, method, body, binary); }
+  try { const result = await raw<T>(path, method, body, binary); if (method !== 'GET' && !path.startsWith('/auth/') && !path.startsWith('/notifications')) window.dispatchEvent(new Event('workflow-saved')); return result; }
   catch (e) {
     if (!(e instanceof ApiError) || e.status !== 401) throw e;
     try { await refreshSession(); }
     catch {
       forgetSession(); window.dispatchEvent(new Event('session-ended')); throw e;
     }
-    return raw<T>(path, method, body, binary);
+    const result = await raw<T>(path, method, body, binary); if (method !== 'GET' && !path.startsWith('/auth/') && !path.startsWith('/notifications')) window.dispatchEvent(new Event('workflow-saved')); return result;
   }
 }
 export async function logout() {

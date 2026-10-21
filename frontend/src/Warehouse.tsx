@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { Check, ChevronLeft, ChevronRight, ClipboardList, PackageCheck, PackagePlus, Play, RefreshCw, RotateCcw, Search, Send } from 'lucide-react';
@@ -87,7 +87,12 @@ export function OrderWarehouse({ orderId, responsibleName }: { orderId: string; 
   const manage = !!stock && can(user, 'stock.view') && can(user, 'orders.view') && ['OPEN', 'IN_PROGRESS', 'AWAITING_TESTING', 'TESTING', 'REWORK'].includes(stock.status);
   const recipients = useQuery({ queryKey: ['assembly', 'recipients', orderId], queryFn: () => api<{ id: string; name: string }[]>(`/manufacturing-orders/${orderId}/stock/recipients`), enabled: manage && can(user, 'stock.issue') });
   const selected = selection.filter(id => stock?.pieces.some(p => p.id === id && p.status === 'RESERVED'));
-  const saved = async (result: OrderStock) => { client.setQueryData(['warehouse', 'order', orderId], result); setAction(null); setSelection([]); setNotice('تم حفظ حركة المخزن'); await invalidateStock(client); };
+  const saved = async (result: OrderStock) => {
+    client.setQueryData(['warehouse', 'order', orderId], result);
+    // Parent order actions must observe the version committed by this stock change.
+    await invalidateStock(client);
+    setAction(null); setSelection([]); setNotice('تم حفظ حركة المخزن');
+  };
   const send = async (path: string, payload: unknown) => {
     setPending(true); setError(null); setNotice('');
     try { await saved(await api<OrderStock>(`/manufacturing-orders/${orderId}/stock/${path}`, 'POST', payload)); } catch (e) { setError(e); } finally { setPending(false); }
@@ -122,11 +127,23 @@ export function OrderWarehouse({ orderId, responsibleName }: { orderId: string; 
 }
 export function PreparationsPage() {
   const { user } = useAuth(); const client = useQueryClient();
+  const [params, setParams] = useSearchParams(); const selectedId = params.get('preparation');
   const allowed = can(user, 'orders.view') && (can(user, 'stock.view') || can(user, 'preparation.manage'));
   const query = useQuery({ queryKey: ['warehouse', 'preparations'], queryFn: () => api<Preparation[]>('/warehouse/preparations'), enabled: allowed });
   const [status, setStatus] = useState('all'), [pending, setPending] = useState(false), [error, setError] = useState<unknown>(null);
+  const selected = query.data?.find(p => p.id === selectedId);
   if (!allowed) return <Denied />;
   return <><div className="page-heading"><div><div className="eyebrow">التصنيع</div><h1>نواقص وتجهيز القطع</h1></div><IconButton label="تحديث النواقص" disabled={query.isFetching || pending} onClick={() => void query.refetch()}><RefreshCw size={18} /></IconButton></div><ErrorBox error={error} />
+    {selectedId && <Modal title="طلب التجهيز المحدد" close={() => { const next = new URLSearchParams(params); next.delete('preparation'); setParams(next); }}>
+      {query.isPending ? <Busy /> : query.error ? <QueryError error={query.error} retry={() => void query.refetch()} /> : selected ? <section className="preparation-selected">
+        <h3>{selected.partName}</h3><p>{selected.orderCode} · {selected.positionCode}</p><Badge status={selected.status} />
+        <p>عند الطلب: {selected.requestedQuantity} · المتبقي: {selected.missing}</p><p>{selected.notes}</p>
+        <Link className="inline-link" to={`/orders/${selected.orderId}`}>فتح طلب التصنيع</Link>
+        {can(user, 'preparation.manage') && selected.status === 'REQUESTED' && <button disabled={pending} onClick={async () => {
+          setPending(true); setError(null); try { await api(`/warehouse/preparations/${selected.id}/start`, 'POST', { version: selected.version }); await invalidateStock(client); } catch (e) { setError(e); } finally { setPending(false); }
+        }}>بدء التجهيز المحدد</button>}<ErrorBox error={error} />
+      </section> : <p role="status">طلب التجهيز غير متاح أو لم يعد لديك حق الوصول إليه.</p>}
+    </Modal>}
     {query.isPending ? <Busy /> : query.error ? <QueryError error={query.error} retry={() => void query.refetch()} /> : <StockTable rows={(query.data ?? []).filter(p => status === 'all' || p.status === status)} searchText={r => `${r.orderCode} ${r.orderTitle} ${r.partCode} ${r.partName} ${r.positionCode}`} filters={<select aria-label="حالة التجهيز" value={status} onChange={e => setStatus(e.target.value)}><option value="all">كل الحالات</option>{['REQUESTED', 'IN_PROGRESS', 'FULFILLED', 'CANCELLED'].map(s => <option key={s} value={s}>{states[s]}</option>)}</select>} columns={[
       { label: 'الطلب', cell: r => <><Link className="inline-link" to={`/orders/${r.orderId}`}>{r.orderTitle}</Link><span className="record-code" dir="ltr">{r.orderCode}</span></> }, { label: 'الموضع', cell: r => r.positionCode }, { label: 'القطعة', cell: r => <PartName code={r.partCode} name={r.partName} /> },
       { label: 'عند الطلب', cell: r => r.requestedQuantity }, { label: 'المتبقي', cell: r => r.missing }, { label: 'الحالة', cell: r => <Badge status={r.status} /> }, { label: 'ملاحظات', cell: r => <span className="cell-notes">{r.notes || '—'}</span> },

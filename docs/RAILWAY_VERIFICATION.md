@@ -64,9 +64,31 @@ reload/session restoration, logo loading and desktop/tablet rendering passed at
 The screenshots were visually inspected and are ignored local artifacts under
 `output/playwright/railway-browser-1440.png` and `railway-browser-834.png`.
 
-Browser HTTPS acceptance against Railway's real public certificate remains
-outstanding. The rehearsal's extra loopback HTTP origin is never a production
-configuration recommendation.
+The rehearsal's extra loopback HTTP origin is never a production configuration
+recommendation. Public HTTPS verification is recorded separately below.
+
+## Public Railway Verification
+
+Verified 2026-10-14 at https://easypack-demo.up.railway.app using the existing
+deployment. These checks did not change cloud configuration or application data.
+
+- Railway reported a successful deployment with the public domain targeting port
+  8080 and no staged changes.
+- The root page, built JavaScript, and direct `/shifts` and `/roles` page requests
+  returned HTTP 200 over HTTPS.
+- `/actuator/health/readiness` returned HTTP 200 with status `UP`.
+- `/api/v1/auth/csrf` returned HTTP 200 and issued a Secure CSRF cookie.
+- HTTPS responses included Strict-Transport-Security.
+- Edge accepted the public certificate and rendered the Arabic login screen.
+  Its screenshot was visually inspected and saved as an ignored local artifact
+  at `output/playwright/railway-public-login.png`.
+- The browser's only reported console error was HTTP 401 from
+  `/api/v1/auth/refresh`, expected for a browser without a login session.
+
+Authenticated public login, forced password change, session restoration and
+business workflows remain unverified on Railway. No administrator credentials
+were read or submitted during these checks; the authenticated local rehearsal
+above does not replace verification against the public deployment.
 
 ## Cleanup
 

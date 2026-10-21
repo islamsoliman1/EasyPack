@@ -85,7 +85,7 @@ class RailwaySpaSecurityTest {
         try (var f = new Fixture(true, true)) {
             for (String path : List.of("/", "/index.html", "/users", "/roles", "/machine-models", "/parts", "/machines",
                 "/boms", "/orders", "/warehouse", "/preparations", "/raw-stock", "/tasks", "/defects", "/operations",
-                "/operations/templates", "/shifts", "/reports", "/orders/" + UUID.randomUUID(),
+                "/operations/templates", "/shifts", "/reports", "/notifications", "/orders/" + UUID.randomUUID(),
                 "/operations/" + UUID.randomUUID(), "/machines/" + UUID.randomUUID() + "/assembly")) {
                 var result = f.mvc.perform(get(path)).andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith("text/html"))
                     .andExpect(content().string(org.hamcrest.Matchers.containsString("railway-test-index"))).andReturn();
@@ -124,7 +124,7 @@ class RailwaySpaSecurityTest {
         try (var f = new Fixture(true, true)) {
             for (String path : List.of("/unknown", "/orders/not-a-uuid", "/machines/123/assembly", "/operations/123",
                 "/orders/00000000-0000-0000-0000-000000000000/extra", "/.env", "/api/unknown", "/api/v1/unknown",
-                "/actuator/env", "/actuator/info", "/v3/api-docs", "/swagger-ui/index.html", "/swagger-ui.html")) {
+                "/api/v1/notifications", "/api/v1/notifications/unread-count", "/actuator/env", "/actuator/info", "/v3/api-docs", "/swagger-ui/index.html", "/swagger-ui.html")) {
                 f.mvc.perform(get(path)).andExpect(status().isUnauthorized());
             }
             f.mvc.perform(get("/api/v1/unknown").header("Authorization", f.bearer(false))).andExpect(status().isNotFound());
@@ -137,7 +137,7 @@ class RailwaySpaSecurityTest {
         for (boolean[] mode : List.of(new boolean[]{false, true}, new boolean[]{true, false})) {
             try (var f = new Fixture(mode[0], mode[1])) {
                 assertFalse(f.context.containsBean("railwayPublicPaths"));
-                for (String path : List.of("/", "/index.html", "/orders", "/brand-mark.svg", "/assets/railway-fixture.js")) {
+                for (String path : List.of("/", "/index.html", "/orders", "/notifications", "/brand-mark.svg", "/assets/railway-fixture.js")) {
                     f.mvc.perform(get(path)).andExpect(status().isUnauthorized());
                     f.mvc.perform(get(path).header("Authorization", f.bearer(false))).andExpect(status().isForbidden());
                 }
@@ -147,7 +147,7 @@ class RailwaySpaSecurityTest {
 
     @Test void csrfAndHttpMethodBoundaryRemainEnforced() throws Exception {
         try (var f = new Fixture(true, true)) {
-            for (String path : List.of("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout", "/")) {
+            for (String path : List.of("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout", "/notifications", "/")) {
                 f.mvc.perform(post(path)).andExpect(status().isForbidden());
             }
             var csrf = f.mvc.perform(get("/api/v1/auth/csrf")).andExpect(status().isOk()).andReturn();

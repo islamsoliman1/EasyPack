@@ -98,6 +98,30 @@ frontend port. Screenshots are under `frontend/test-results/`. Traces are disabl
 recording credentials. Test files themselves do not embed development credentials.
 For an installed Edge browser, set `PLAYWRIGHT_CHANNEL=msedge` instead of downloading Chromium.
 
+## In-app Notifications
+
+The authenticated header bell and `/notifications` show a persistent personal inbox.
+Online foreground screens refresh every 30 seconds; focus/reconnect and successful
+local actions also refresh the inbox. Opening the bell does not mark messages read.
+Arabic timestamps display in Cairo time, while persistence and reminders use UTC.
+Task, defect, preparation, order and operations links open their existing detail views.
+
+V13 records workflow events and recipients atomically in the business transaction.
+Recipients require current effective permissions and target access; explicit denies,
+disabled users and superseded task assignments cannot expose old private alerts.
+Owner summaries may fall back to the order when departmental access is revoked.
+Administrators must grant the relevant capabilities to department users; notification
+delivery introduces no automatic role grants. No email, push, SMS or Kafka is used.
+
+Delivery reminders scan every 15 minutes and cover the next 24 hours plus overdue
+orders, including completed but undelivered orders. Delivered, cancelled and draft
+orders are excluded. Set `easyback.notifications.scheduler-enabled=false` to disable
+the scheduled wrapper or configure `easyback.notifications.scan-ms` in Spring settings.
+Integration tests disable scheduling and evaluate against a controlled clock.
+See [notification design and implementation](docs/NOTIFICATIONS_PLAN.md).
+Notification browser fixtures are cancelled and their users/catalog records archived;
+their workflow and notification history remain in the local development database.
+
 ## Deployment Boundary
 
 Implemented Pilot software includes shifts/work sessions, scoped attachments, reusable trial templates
