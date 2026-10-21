@@ -256,3 +256,17 @@ legend { padding-inline-end: 12px; font-size: 13px; font-weight: 600; }
   .report-print-only td, .report-print-only th { white-space: normal; overflow-wrap: anywhere; padding: 5px; color: black; background: white; }
   tr { break-inside: avoid; } thead { display: table-header-group; }
 }
+
+.language-toggle { min-width: 78px; flex-shrink: 0; font-weight: 600; }
+.login-theme, .password-header { display: flex; align-items: center; gap: 10px; }
+.bootstrap-page { padding: 24px; }
+.source-preview { padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+.source-preview dl { margin-block: 8px 0; display: grid; gap: 6px; }
+.source-preview dl > div { display: grid; grid-template-columns: minmax(80px, 1fr) 3fr; gap: 8px; }
+.source-preview dt { color: var(--muted); } .source-preview dd { margin: 0; overflow-wrap: anywhere; }
+.translation-note { color: var(--muted); font-size: 12px; line-height: 1.6; margin-block: 0 18px; }
+.modal > header h2 { flex: 1; }
+[dir="ltr"] .lucide-chevron-left, [dir="ltr"] .lucide-chevron-right,
+[dir="ltr"] .lucide-arrow-left, [dir="ltr"] .lucide-arrow-right { transform: scaleX(-1); }
+input[type="number"], input[type="email"], input[type="datetime-local"], input[type="date"], input[type="time"] { direction: ltr; }
+@media (max-width: 600px) { .topbar { gap: 8px; } .topbar > div { gap: 8px; } .modal > header { flex-wrap: wrap; gap: 8px; } }

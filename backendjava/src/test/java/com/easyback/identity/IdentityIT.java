@@ -1438,11 +1438,17 @@ class IdentityIT {
     @Test void fullPermissionRolesAndOverridesRoundTripWithoutArbitraryCollectionLimits() throws Exception {
         assertTrue(Permissions.ALL.size()>50);
         JsonNode administrator=null;
-        for(var role:admin.read(admin.call("GET","/roles",null,false),200)) if(role.path("name").asText().equals("Administrator")) administrator=role;
+        for(var role:admin.read(admin.call("GET","/roles",null,false),200)) if(role.path("originalText").path("name").asText().equals("Administrator")) administrator=role;
         assertNotNull(administrator);
+        assertEquals("مدير النظام",administrator.path("name").asText());
+        assertEquals("Administrator",administrator.path("originalText").path("name").asText());
         var body=new HashMap<String,Object>(Map.of("name","Administrator","description","Updated full-permission role","permissions",Permissions.ALL,"version",administrator.path("version").asLong()));
         var updated=admin.read(admin.call("PUT","/roles/"+administrator.path("id").asText(),body,true),200);
         assertEquals(Permissions.ALL.size(),updated.path("permissions").size());
+        assertEquals("مدير النظام",updated.path("name").asText());
+        assertEquals("Administrator",updated.path("originalText").path("name").asText());
+        assertEquals("Administrator",db.sql("SELECT name FROM roles WHERE id=:id")
+            .param("id",UUID.fromString(administrator.path("id").asText())).query(String.class).single());
         assertEquals("Updated full-permission role",updated.path("description").asText());
         body.put("name","Full permission regression"); body.put("version",0);
         var created=admin.read(admin.call("POST","/roles",body,true),201);

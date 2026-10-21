@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/brand-mark.svg" />
     <title>EasyPack | EPE</title>
     <script>
+      try { const language = localStorage.getItem('easypack-language') === 'en' ? 'en' : 'ar'; document.documentElement.lang = language; document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'; } catch {}
       try { document.documentElement.dataset.theme = localStorage.getItem('easypack-theme') === 'dark' ? 'dark' : 'light'; } catch {}
     </script>
   </head>

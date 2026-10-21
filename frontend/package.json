@@ -7,7 +7,8 @@
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "audit:translations": "node ../scripts/Check-Translations.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -17,7 +18,9 @@
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.90.0",
     "react-router-dom": "^7.18.4",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "i18next": "^26.4.7",
+    "react-i18next": "^17.0.20"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",

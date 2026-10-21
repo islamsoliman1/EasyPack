@@ -1,5 +1,7 @@
+import { formatDisplay, useLanguage } from '../i18n';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '../localizedQuery';
 import { api } from '../api';
 import { useAuth } from '../access';
 
@@ -9,9 +11,10 @@ type Context = { key: readonly string[]; count: number; countError: unknown; rea
 const Notifications = createContext<Context | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
+  const language = useLanguage();
   const { user } = useAuth(); const client = useQueryClient();
   const permissions = [...user.permissions].sort().join(',');
-  const key = ['notifications', user.id, permissions] as const;
+  const key = ['notifications', user.id, permissions, language] as const;
   const [failure, setFailure] = useState<{ id: string; error: unknown } | null>(null);
   const refresh = useCallback(async () => { await client.invalidateQueries({ queryKey: ['notifications', user.id] }); }, [client, user.id]);
   const count = useQuery({ queryKey: [...key, 'count'], queryFn: () => api<{ count: number }>('/notifications/unread-count') });
@@ -31,6 +34,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try { await api(`/notifications/${id === 'all' ? 'read-all' : `${id}/read`}`, 'POST'); setFailure(null); await refresh(); }
     catch (error) { setFailure({ id, error }); }
   };
-  return <Notifications.Provider value={{ key, count: count.data?.count ?? 0, countError: count.error, readError: failure?.error, failedRead: failure?.id ?? null, markRead, refresh }}>{children}</Notifications.Provider>;
+  return <Notifications.Provider value={{ key, count: count.data?.count ?? 0, countError: count.error, readError: failure?.error, failedRead: failure?.id ?? null, markRead, refresh }}>{formatDisplay(children)}</Notifications.Provider>;
 }
 export function useNotifications() { const value = useContext(Notifications); if (!value) throw new Error('NotificationProvider is required'); return value; }

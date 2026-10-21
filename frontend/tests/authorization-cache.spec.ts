@@ -117,7 +117,7 @@ test('stock issue waits for the parent order version before allowing cancellatio
   });
   await page.goto(`/orders/${orderId}`);
   await page.getByRole('checkbox', { name: 'تحديد OTHER-SERIAL', exact: true }).check();
-  await page.getByRole('button', { name: `صرف المحدد (${1})`, exact: true }).click();
+  await page.getByRole('button', { name: `صرف المحدد (${new Intl.NumberFormat('ar-EG').format(1)})`, exact: true }).click();
   await page.getByRole('button', { name: 'تأكيد الصرف', exact: true }).click();
   await expect.poll(() => Boolean(parentRefresh)).toBe(true);
   await expect(page.getByRole('dialog')).toBeVisible();

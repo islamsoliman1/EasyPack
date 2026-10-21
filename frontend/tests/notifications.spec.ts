@@ -7,7 +7,7 @@ if (Boolean(injectedEmail) !== Boolean(injectedPassword)) throw new Error('Provi
 const env = injectedEmail && injectedPassword
   ? { BOOTSTRAP_EMAIL: injectedEmail, BOOTSTRAP_PASSWORD: injectedPassword }
   : Object.fromEntries(readFileSync(new URL('../../.env', import.meta.url), 'utf8').split(/\r?\n/).filter(l => l.includes('=')).map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
-const notificationName = (count: number) => `الإشعارات، ${count} غير مقروء`;
+const notificationName = (count: number) => `الإشعارات، ${new Intl.NumberFormat('ar-EG').format(count)} غير مقروء`;
 async function signIn(page: Page, email: string, password: string) {
   await page.goto('/'); await page.getByLabel('البريد الإلكتروني', { exact: true }).fill(email); await page.getByLabel('كلمة المرور', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'دخول', exact: true }).click(); await expect(page.getByRole('heading', { name: 'حسابي', exact: true })).toBeVisible();
