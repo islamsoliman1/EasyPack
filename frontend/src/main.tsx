@@ -1,3 +1,4 @@
+import { PasswordInput } from './PasswordInput';
 import { searchable, getDirection } from './i18n';
 import { LanguageToggle } from './LanguageToggle';
 import { SourceTextPreview } from './SourceTextPreview';
@@ -79,7 +80,7 @@ function Login({ success }: { success: (user: User) => void }) {
       <h1>{translateUi("تسجيل الدخول")}</h1><ErrorBox error={error} />
       <label>{translateUi("البريد الإلكتروني")}<input dir="ltr" autoComplete="username" {...form.register('email')} type="email" required /></label>
       <small className="field-error">{formatDisplay(form.formState.errors.email?.message)}</small>
-      <label>{translateUi("كلمة المرور")}<input type="password" dir="ltr" autoComplete="current-password" {...form.register('password')} required /></label>
+      <PasswordInput label={translateUi("كلمة المرور")} dir="ltr" autoComplete="current-password" {...form.register('password')} required />
       <small className="field-error">{formatDisplay(form.formState.errors.password?.message)}</small>
       <button className="primary" disabled={form.formState.isSubmitting}>{formatDisplay(form.formState.isSubmitting ? 'جارٍ الدخول' : 'دخول')}<ChevronLeft size={18} /></button>
     </form><footer dir="ltr">EPE · EasyPack</footer></main>;
@@ -93,10 +94,10 @@ function PasswordForm({ complete }: { complete: () => Promise<void> }) {
   return <form onSubmit={form.handleSubmit(async values => {
     setError(null); try { await api('/auth/password', 'POST', values); await complete(); } catch (e) { setError(e); }
   })} className="form-stack"><ErrorBox error={error} />
-    <label>{translateUi("كلمة المرور الحالية")}<input type="password" dir="ltr" autoComplete="current-password" {...form.register('currentPassword')} required /></label>
-    <label>{translateUi("كلمة المرور الجديدة")}<input type="password" dir="ltr" autoComplete="new-password" {...form.register('newPassword')} required /></label>
+    <PasswordInput label={translateUi("كلمة المرور الحالية")} dir="ltr" autoComplete="current-password" {...form.register('currentPassword')} required />
+    <PasswordInput label={translateUi("كلمة المرور الجديدة")} dir="ltr" autoComplete="new-password" {...form.register('newPassword')} required />
     <small className="field-error">{formatDisplay(form.formState.errors.newPassword?.message)}</small>
-    <label>{translateUi("تأكيد كلمة المرور")}<input type="password" dir="ltr" autoComplete="new-password" {...form.register('confirmation')} required /></label>
+    <PasswordInput label={translateUi("تأكيد كلمة المرور")} dir="ltr" autoComplete="new-password" {...form.register('confirmation')} required />
     <small className="field-error">{formatDisplay(form.formState.errors.confirmation?.message)}</small>
     <button className="primary" disabled={form.formState.isSubmitting}><KeyRound size={18} />{translateUi("حفظ وتسجيل الدخول مجددًا")}</button>
   </form>;
@@ -155,7 +156,7 @@ function UserForm({ original, roles, rolesError, saved, cancel }: { original?: U
     try { await api(`/users${original ? `/${original.id}` : ''}`, original ? 'PUT' : 'POST', { ...v, version: original?.version ?? 0 }); await saved(); } catch (e) { setError(e); }
   })}><SourceTextPreview values={form.watch()} /><ErrorBox error={error} /><label>{translateUi("الاسم")}<input {...form.register('displayName')} maxLength={120} readOnly={!!original && !can(user, 'users.update')} required /></label><small className="field-error">{formatDisplay(form.formState.errors.displayName?.message)}</small>
     <label>{translateUi("البريد الإلكتروني")}<input {...form.register('email')} type="email" dir="ltr" readOnly={!!original} required autoComplete="off" /></label><small className="field-error">{formatDisplay(form.formState.errors.email?.message)}</small>
-    {formatDisplay(!original && <><label>{translateUi("كلمة مرور مؤقتة")}<input type="password" {...form.register('password')} dir="ltr" autoComplete="new-password" required /></label><small className="field-error">{formatDisplay(form.formState.errors.password?.message)}</small></>)}
+    {formatDisplay(!original && <><PasswordInput label={translateUi("كلمة مرور مؤقتة")} {...form.register('password')} dir="ltr" autoComplete="new-password" required /><small className="field-error">{formatDisplay(form.formState.errors.password?.message)}</small></>)}
     <label className="check-line"><input type="checkbox" checked={values.active} onChange={e => form.setValue('active', e.target.checked)} disabled={!!original && !can(user, 'users.deactivate')} />{translateUi("حساب نشط")}</label>
     {formatDisplay(assign && <fieldset disabled={!roles}><legend>{translateUi("الأدوار")}</legend><ErrorBox error={rolesError} />{formatDisplay(!roles && !rolesError && <Busy />)}{formatDisplay(roles?.map(role => <label className="check-line" key={role.id}><input type="checkbox" value={role.id} {...form.register('roleIds')} checked={values.roleIds.includes(role.id)} />{formatDisplay(role.name)}</label>))}</fieldset>)}
     {formatDisplay(assign && <fieldset><legend>{translateUi("صلاحيات خاصة بالمستخدم")}</legend><div className="override-list">{formatDisplay(Object.entries(names).map(([p, label]) => <label key={p}><span>{formatDisplay(label)}</span><select aria-label={translateDisplay(label)} value={values.overrides[p] === undefined ? 'inherit' : values.overrides[p] ? 'allow' : 'deny'} onChange={e => {
@@ -168,7 +169,7 @@ function ResetForm({ user, saved }: { user: User; saved: () => Promise<void> }) 
   useLanguage();
   const [error, setError] = useState<unknown>(null);
   const form = useForm({ resolver: zodResolver(z.object({ password })), defaultValues: { password: '' } });
-  return <form className="form-stack" onSubmit={form.handleSubmit(async v => { setError(null); try { await api(`/users/${user.id}/password`, 'POST', { ...v, version: user.version }); await saved(); } catch (e) { setError(e); } })}><SourceTextPreview values={form.watch()} /><ErrorBox error={error} /><label>{translateUi("كلمة مرور مؤقتة")}<input type="password" dir="ltr" autoComplete="new-password" {...form.register('password')} required /></label><small className="field-error">{formatDisplay(form.formState.errors.password?.message)}</small><button className="primary" disabled={form.formState.isSubmitting}><KeyRound size={17} />{translateUi("إعادة التعيين")}</button></form>;
+  return <form className="form-stack" onSubmit={form.handleSubmit(async v => { setError(null); try { await api(`/users/${user.id}/password`, 'POST', { ...v, version: user.version }); await saved(); } catch (e) { setError(e); } })}><SourceTextPreview values={form.watch()} /><ErrorBox error={error} /><PasswordInput label={translateUi("كلمة مرور مؤقتة")} dir="ltr" autoComplete="new-password" {...form.register('password')} required /><small className="field-error">{formatDisplay(form.formState.errors.password?.message)}</small><button className="primary" disabled={form.formState.isSubmitting}><KeyRound size={17} />{translateUi("إعادة التعيين")}</button></form>;
 }
 function RolesPage() {
   useLanguage();
