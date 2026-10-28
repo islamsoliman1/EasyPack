@@ -7,6 +7,8 @@ import { useQuery, localizedKey } from './localizedQuery';
 import { useForm } from 'react-hook-form';
 import { Check, ChevronLeft, ChevronRight, ClipboardList, PackageCheck, PackagePlus, Play, RefreshCw, RotateCcw, Search, Send } from 'lucide-react';
 import { api } from './api';
+import { ResourceVisual } from './CatalogMedia';
+import { SearchableSelect } from './SearchableSelect';
 import { can, useAuth } from './access';
 import { Busy, Denied, ErrorBox, IconButton, Modal, QueryError } from './ui';
 import type { Part } from './catalog';
@@ -22,8 +24,8 @@ const actions: Record<string, string> = { RECEIVED: 'استلام', RESERVED: '�
 const dateFormat = dateFormatter({ dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Cairo' });
 function Badge({ status }: { status: string }) {
   useLanguage(); return <span className={`badge ${['AVAILABLE', 'FULFILLED'].includes(status) ? 'active' : ['QUARANTINED', 'CANCELLED'].includes(status) ? 'inactive' : 'draft'}`}>{formatDisplay(states[status] ?? status)}</span>; }
-function PartName({ code, name }: { code: string; name: string }) {
-  useLanguage(); return <><strong>{formatDisplay(name)}</strong><span className="record-code" dir="ltr">{formatDisplay(code)}</span></>; }
+function PartName({ code, name, id }: { code: string; name: string; id?: string }) {
+  useLanguage(); return <div className="record-with-visual">{id && <ResourceVisual kind="PART" id={id} name={name} compact />}<div><strong>{formatDisplay(name)}</strong><span className="record-code" dir="ltr">{formatDisplay(code)}</span></div></div>; }
 export async function invalidateStock(client: ReturnType<typeof useQueryClient>) {
   await Promise.all([['warehouse'], ['/manufacturing-orders'], ['assembly'], ['/machines'], ['defects'], ['operations'], ['reports']].map(queryKey => client.invalidateQueries({ queryKey })));
 }
@@ -54,10 +56,10 @@ export function WarehousePage() {
     {formatDisplay(notice && <div className="notice" role="status"><Check size={17} />{formatDisplay(notice)}</div>)}
     <div className="view-tabs" role="tablist" aria-label={translateUi("عرض المخزن")}>{formatDisplay([['balances', 'الأرصدة'], ['pieces', 'القطع المسلسلة'], ['movements', 'سجل الحركات']].map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} onClick={() => setTab(value)}>{formatDisplay(label)}</button>))}</div>
     {formatDisplay(query.isPending ? <Busy /> : query.error ? <QueryError error={query.error} retry={() => void query.refetch()} /> : tab === 'balances' ? <StockTable key={tab} rows={balances.data ?? []} searchText={r => `${r.partCode} ${r.partName}`} columns={[
-      { label: 'الصنف', cell: r => <PartName code={r.partCode} name={r.partName} /> }, { label: 'متاح', cell: r => r.available }, { label: 'محجوز', cell: r => r.reserved }, { label: 'داخل المخزن', cell: r => r.available + r.reserved }, { label: 'مصروف غير مركب', cell: r => r.issued }, { label: 'مركب', cell: r => r.installed }, { label: 'معزول', cell: r => r.quarantined },
+      { label: 'الصنف', cell: r => <PartName id={r.partId} code={r.partCode} name={r.partName} /> }, { label: 'متاح', cell: r => r.available }, { label: 'محجوز', cell: r => r.reserved }, { label: 'داخل المخزن', cell: r => r.available + r.reserved }, { label: 'مصروف غير مركب', cell: r => r.issued }, { label: 'مركب', cell: r => r.installed }, { label: 'معزول', cell: r => r.quarantined },
       { label: 'مرفوض بعهدة العامل', cell: r => r.rejected }, { label: 'تحت الإصلاح', cell: r => r.inRepair }, { label: 'مصلح ينتظر الاستلام', cell: r => r.repaired }, { label: 'معدم', cell: r => r.scrapped },
     ]} /> : tab === 'pieces' ? <StockTable key={tab} rows={(pieces.data ?? []).filter(p => status === 'all' || p.status === status)} searchText={r => `${r.serialNumber} ${r.partCode} ${r.partName} ${r.orderCode ?? ''} ${r.location}`} filters={<select aria-label={translateUi("حالة القطعة")} value={status} onChange={e => setStatus(e.target.value)}><option value="all">{translateUi("كل الحالات")}</option>{formatDisplay(['AVAILABLE', 'RESERVED', 'ISSUED', 'INSTALLED', 'REJECTED', 'QUARANTINED', 'IN_REPAIR', 'REPAIRED', 'SCRAPPED'].map(s => <option key={s} value={s}>{formatDisplay(states[s])}</option>))}</select>} columns={[
-      { label: 'Serial Number', cell: r => <strong dir="ltr">{formatDisplay(r.serialNumber)}</strong> }, { label: 'الصنف', cell: r => <PartName code={r.partCode} name={r.partName} /> }, { label: 'الموقع', cell: r => r.location || '—' }, { label: 'الحالة', cell: r => <Badge status={r.status} /> },
+      { label: 'Serial Number', cell: r => <strong dir="ltr">{formatDisplay(r.serialNumber)}</strong> }, { label: 'الصنف', cell: r => <PartName id={r.partId} code={r.partCode} name={r.partName} /> }, { label: 'الموقع', cell: r => r.location || '—' }, { label: 'الحالة', cell: r => <Badge status={r.status} /> },
       { label: 'الطلب / الموضع', cell: r => r.orderId && can(user, 'orders.view') ? <Link className="inline-link" to={`/orders/${r.orderId}`}>{formatDisplay(r.orderCode)} · {formatDisplay(r.positionCode)}</Link> : '—' }, { label: 'المستلم', cell: r => r.recipientName || '—' },
       { label: 'الإجراءات', cell: r => r.defectId ? can(user, 'defects.view') && can(user, 'orders.view') && <Link className="inline-link" to={`/defects?case=${r.defectId}`}>{translateUi("بلاغ العيب")}</Link> : r.status === 'QUARANTINED' && can(user, 'stock.receive') && <IconButton label={translateDisplay(translateUi("إتاحة {{v0}} بعد الفحص", {v0: r.serialNumber}))} onClick={() => { setRestore(r); setNotes(''); setError(null); }}><PackageCheck size={18} /></IconButton> },
     ]} /> : <StockTable key={tab} rows={movements.data ?? []} searchText={r => `${r.serialNumber} ${r.orderCode ?? ''} ${r.reference} ${r.actorName}`} columns={[
@@ -79,7 +81,10 @@ function ReceiptForm({ saved, cancel }: { saved: () => Promise<void>; cancel: ()
   return <Modal title={translateUi("استلام قطع")} close={() => { if (!form.formState.isSubmitting) cancel(); }}><form className="form-stack" onSubmit={form.handleSubmit(async v => {
     setError(null); try { await api('/warehouse/receipts', 'POST', { ...v, serials: v.serialText.split(/\r?\n/).map(s => s.trim()).filter(Boolean) }); await saved(); } catch (e) { setError(e); }
   })}><ErrorBox error={error} />{formatDisplay(parts.error && <QueryError error={parts.error} retry={() => void parts.refetch()} />)}
-    <label>{translateUi("الصنف")}<select aria-label={translateUi("الصنف")} {...form.register('partId')} required disabled={parts.isPending || parts.isError}><option value="">{translateUi("اختر الصنف")}</option>{formatDisplay(parts.data?.filter(p => p.active && p.kind === 'SERIALIZED_PIECE').map(p => <option key={p.id} value={p.id}>{formatDisplay(p.code)} · {formatDisplay(p.name)}</option>))}</select></label>
+    <label>{translateUi("الصنف")}<input type="hidden" {...form.register('partId', { required: true })} /><SearchableSelect label={translateUi("الصنف")} value={form.watch('partId')} required disabled={parts.isPending || parts.isError} placeholder={translateUi("اختر الصنف")}
+      options={(parts.data ?? []).filter(p => p.active && p.kind === 'SERIALIZED_PIECE').map(p => ({ value: p.id, label: `${formatDisplay(p.code)} · ${formatDisplay(p.name)}`, keywords: p.description }))}
+      onChange={value => form.setValue('partId', value, { shouldValidate: true })} /></label>
+    {form.watch('partId') && <ResourceVisual kind="PART" id={form.watch('partId')} name={parts.data?.find(p => p.id === form.watch('partId'))?.name ?? ''} compact />}
     <label>{translateUi("الأرقام المسلسلة · رقم لكل سطر")}<textarea aria-label={translateUi("الأرقام المسلسلة")} {...form.register('serialText')} required rows={5} maxLength={13000} dir="ltr" /></label>
     <label>{translateUi("الموقع بالمخزن")}<input {...form.register('location')} maxLength={120} /></label><label>{translateUi("مرجع الاستلام")}<input {...form.register('reference')} maxLength={120} /></label><label>{translateUi("ملاحظات")}<textarea {...form.register('notes')} maxLength={1000} rows={2} /></label>
     <div className="form-actions"><button className="primary" disabled={form.formState.isSubmitting || parts.isPending || parts.isError}><PackagePlus size={17} />{translateUi("تأكيد الاستلام")}</button><button type="button" onClick={cancel} disabled={form.formState.isSubmitting}>{translateUi("إلغاء")}</button></div>
