@@ -9,6 +9,9 @@ The active implementation is **`backendjava/`** (Java 21, Spring Boot, PostgreSQ
 and **`frontend/`** (React, TypeScript, Vite). This directory contains the standalone Java/React project.
 Run all commands below from this repository's root.
 
+Official company branding, contact details, and source references are documented in
+[Company and brand reference](docs/COMPANY_BRAND.md).
+
 ## Implemented Deliveries
 
 - Real email/password login, BCrypt hashes, signed 15-minute access tokens in memory.
