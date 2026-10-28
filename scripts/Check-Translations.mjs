@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const root=path.resolve(import.meta.dirname,'..'),src=path.join(root,'frontend/src');
-const ui={...JSON.parse(fs.readFileSync(path.join(src,'translations.json'),'utf8')), ...JSON.parse(fs.readFileSync(path.join(src,'notifications/translations.json'),'utf8')), ...JSON.parse(fs.readFileSync(path.join(src,'factory-translations.json'),'utf8'))};
+const ui=Object.assign({},...['translations.json','notifications/translations.json','factory-translations.json','catalog-media-translations.json'].map(name=>JSON.parse(fs.readFileSync(path.join(src,name),'utf8'))));
 const content=JSON.parse(fs.readFileSync(path.join(src,'reviewed-content.json'),'utf8'));
 const system=JSON.parse(fs.readFileSync(path.join(src,'system-content.json'),'utf8'));
 const notifications=JSON.parse(fs.readFileSync(path.join(src,'notification-content.json'),'utf8'));
