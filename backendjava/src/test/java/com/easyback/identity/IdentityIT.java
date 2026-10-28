@@ -81,6 +81,63 @@ class IdentityIT {
     JsonNode create(String email, List<String> roles) throws Exception {
         return admin.read(admin.call("POST", "/users", input(email, roles, Map.of()), true), 201);
     }
+    @Test void machineChatIsPersistentIsolatedPaginatedAndPermissionChecked() throws Exception {
+        String model=model("chat-model").path("id").asText();
+        String first=machine("chat-first",model).path("id").asText(), second=machine("chat-second",model).path("id").asText();
+        var user=admin.read(admin.call("POST","/users",input("chat-viewer@test.local",List.of(),Map.of("machines.view",true)),true),201);
+        db.sql("UPDATE users SET must_change_password=false WHERE email='chat-viewer@test.local'").update();
+        Client viewer=new Client(); viewer.login("chat-viewer@test.local",INITIAL);
+        String path="/machines/"+first+"/chat";
+        var sent=admin.read(admin.call("POST",path,Map.of("body","تصميم الماكينة جاهز\nReview drawing"),true),201);
+        long message=sent.path("id").asLong();
+        assertEquals("تصميم الماكينة جاهز\nReview drawing",sent.path("body").asText());
+        assertFalse(sent.path("senderName").asText().isBlank());
+        assertEquals(1,viewer.read(viewer.call("GET",path,null,false),200).path("messages").size());
+        assertEquals(0,viewer.read(viewer.call("GET","/machines/"+second+"/chat",null,false),200).path("messages").size());
+        assertEquals(1,viewer.read(viewer.call("GET","/machine-chat/unread",null,false),200).get(0).path("count").asLong());
+        assertEquals(0,admin.read(admin.call("GET","/machine-chat/unread",null,false),200).size());
+        viewer.read(viewer.call("PUT","/machines/"+second+"/chat/read",Map.of("through",message),true),404);
+        viewer.read(viewer.call("PUT",path+"/read",Map.of("through",message),true),204);
+        assertEquals(0,viewer.read(viewer.call("GET","/machine-chat/unread",null,false),200).size());
+        admin.read(admin.call("POST",path,Map.of("body","   "),true),400);
+        admin.read(admin.call("POST",path,Map.of("body","x".repeat(2001)),true),400);
+        Client cookieOnly=new Client();
+        cookieOnly.read(cookieOnly.call("POST",path,Map.of("body","No authentication or CSRF"),false),403);
+        for(int i=0;i<51;i++) admin.read(admin.call("POST",path,Map.of("body","Message "+i),true),201);
+        var page=viewer.read(viewer.call("GET",path,null,false),200);
+        assertEquals(50,page.path("messages").size()); assertTrue(page.path("hasMore").asBoolean());
+        var older=viewer.read(viewer.call("GET",path+"?before="+page.path("messages").get(0).path("id").asLong(),null,false),200);
+        assertEquals(2,older.path("messages").size()); assertFalse(older.path("hasMore").asBoolean());
+        assertEquals(message,older.path("messages").get(0).path("id").asLong());
+        long latest=page.path("messages").get(49).path("id").asLong();
+        viewer.read(viewer.call("PUT",path+"/read",Map.of("through",latest),true),204);
+        viewer.read(viewer.call("PUT",path+"/read",Map.of("through",message),true),204);
+        assertEquals(0,viewer.read(viewer.call("GET","/machine-chat/unread",null,false),200).size());
+        viewer.read(viewer.call("GET","/factory-dashboard",null,false),403);
+        db.sql("UPDATE user_permission_overrides SET allowed=false WHERE user_id=:id AND permission='machines.view'").param("id",UUID.fromString(user.path("id").asText())).update();
+        viewer.read(viewer.call("GET",path,null,false),403);
+        viewer.read(viewer.call("POST",path,Map.of("body","Forbidden"),true),403);
+        viewer.read(viewer.call("GET","/machine-chat/unread",null,false),403);
+        viewer.read(viewer.call("PUT",path+"/read",Map.of("through",latest),true),403);
+        Client anonymous=new Client(); anonymous.read(anonymous.call("GET",path,null,false),401);
+    }
+    @Test void factoryDashboardReflectsRealOrdersAndCurrentShortages() throws Exception {
+        var empty=admin.read(admin.call("GET","/factory-dashboard",null,false),200);
+        assertEquals(0,empty.path("metrics").path("orders").asLong());
+        var fixture=orderFixture();
+        var order=newOrder(orderInput("dashboard-order",fixture));
+        var draft=admin.read(admin.call("GET","/factory-dashboard",null,false),200);
+        assertEquals(1,draft.path("metrics").path("machines").asLong());
+        assertEquals(1,draft.path("metrics").path("orders").asLong());
+        assertEquals(0,draft.path("metrics").path("missing").asLong());
+        admin.read(admin.call("POST","/manufacturing-orders/"+order.path("id").asText()+"/release",Map.of("version",0),true),200);
+        var active=admin.read(admin.call("GET","/factory-dashboard",null,false),200).path("metrics");
+        assertEquals(1,active.path("active").asLong());
+        assertEquals(4,active.path("required").asLong());
+        assertEquals(4,active.path("missing").asLong());
+        assertEquals(4,active.path("unassigned").asLong());
+        assertEquals(0,active.path("installed").asLong());
+    }
     @Test void csrfAndWrongPasswordAreRejected() throws Exception {
         Client anonymous = new Client();
         anonymous.read(anonymous.call("POST", "/auth/login", Map.of("email", "admin@test.easyback.local", "password", "incorrect123!"), false), 403);
