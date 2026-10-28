@@ -14,7 +14,7 @@ import { Busy, Denied, ErrorBox, IconButton, Modal, QueryError } from './ui';
 import { codePattern, dimensions, type Bom, type BomItem, type Machine } from './catalog';
 import { OrderWarehouse } from './Warehouse';
 
-type Order = {
+export type Order = {
   id: string; code: string; title: string; machineId: string; bomId: string; responsibleId: string; responsibleName: string;
   deliveryAt: string; notes: string; status: 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'AWAITING_TESTING' | 'TESTING' | 'REWORK' | 'COMPLETED' | 'CANCELLED'; machineSerial: string; machineName: string;
   modelName: string; bomRevision: number; version: number; createdAt: string; openedAt: string | null;

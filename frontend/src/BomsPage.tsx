@@ -1,4 +1,5 @@
 import { SourceTextPreview } from './SourceTextPreview';
+import { FileButton } from './Files';
 import { translateUi, translateDisplay, formatDisplay, useLanguage, getLocale, getDirection } from './i18n';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -73,7 +74,7 @@ function BomWorkspace() {
             <button className="primary" disabled={pending || !bom.items.length} onClick={() => { setError(null); setConfirmationVersion(bom.version); setConfirm('publish'); }}><Upload size={17} />{translateUi("نشر الإصدار")}</button></div>)}</div>
         {formatDisplay(parts.error && <QueryError error={parts.error} retry={() => void parts.refetch()} />)}
         <div className="table-wrap"><table className="bom-table"><thead><tr><th>{translateUi("الموضع")}</th><th>{translateUi("القطعة")}</th><th>{translateUi("المقاسات")}</th><th>{translateUi("الكمية")}</th><th>{translateUi("دقيقة / قطعة")}</th><th>{translateUi("ملاحظات")}</th>{formatDisplay(writable && <th>{translateUi("الإجراءات")}</th>)}</tr></thead><tbody>
-          {formatDisplay(bom.items.map(i => <tr key={i.id}><td><strong dir="ltr">{formatDisplay(i.positionCode)}</strong></td><td><strong>{formatDisplay(i.partName)}</strong><span className="record-code" dir="ltr">{formatDisplay(i.partCode)}</span></td>
+          {formatDisplay(bom.items.map(i => <tr key={i.id}><td><strong dir="ltr">{formatDisplay(i.positionCode)}</strong></td><td><strong>{formatDisplay(i.partName)}</strong><span className="record-code" dir="ltr">{formatDisplay(i.partCode)}</span><FileButton kind="PART" id={i.partId} name={i.partName} /></td>
             <td><span className="dimensions" dir={i.shape === 'STANDARD' ? getDirection() : 'ltr'}>{formatDisplay(dimensions(i))}</span></td><td>{formatDisplay(i.quantity)}</td><td>{formatDisplay(i.expectedInstallMinutes)}</td><td><span className="cell-notes">{formatDisplay(i.notes || '—')}</span></td>
             {formatDisplay(writable && <td><div className="row-actions"><IconButton label={translateDisplay(translateUi("تعديل الموضع {{v0}}", {v0: i.positionCode}))} disabled={pending} onClick={() => setEditing(i)}><Pencil size={17} /></IconButton>
               <IconButton label={translateDisplay(translateUi("حذف الموضع {{v0}}", {v0: i.positionCode}))} disabled={pending} onClick={() => { setError(null); setConfirmationVersion(bom.version); setConfirm(i); }}><Trash2 size={17} /></IconButton></div></td>)}</tr>))}

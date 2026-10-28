@@ -12,6 +12,7 @@ import { can, useAuth } from './access';
 import { Busy, Denied, ErrorBox, IconButton, Modal, QueryError } from './ui';
 import { codePattern, dimensions, type Model, type Part, type Machine } from './catalog';
 import { FileButton } from './Files';
+import { MachineChatButton, useChatUnread } from './MachineChat';
 
 type FormProps<T> = { original?: T; saved: () => Promise<void>; cancel: () => void };
 function CatalogList<T extends { id: string; name: string; active: boolean }>({ endpoint, title, addLabel, read, write, columns, searchText, form }: {
@@ -122,12 +123,14 @@ function PartForm({ original, saved, cancel }: FormProps<Part>) {
 export function MachinesPage() {
   useLanguage();
   const { user } = useAuth();
+  const unread = useChatUnread(can(user, 'machines.view'));
   return <CatalogList<Machine> endpoint="/machines" title={translateUi("الماكينات")} addLabel={translateUi("ماكينة جديدة")} read="machines.view" write={['machines.view', 'machines.manage', 'catalog.view']}
     searchText={m => `${m.serialNumber} ${m.name} ${m.modelName} ${m.location}`} columns={[
       { title: 'الماكينة', render: m => <><strong>{formatDisplay(m.name)}</strong><span className="record-code" dir="ltr">{formatDisplay(m.serialNumber)}</span></> },
       { title: 'الموديل', render: m => <><span>{formatDisplay(m.modelName)}</span><div className="record-code" dir="ltr">{formatDisplay(m.modelCode)}</div></> },
       { title: 'الموقع', render: m => m.location || '—' },
       { title: 'المرفقات', render: m => <FileButton kind="MACHINE" id={m.id} name={m.name} /> },
+      { title: 'المحادثة', render: m => <MachineChatButton id={m.id} name={m.name} unread={unread.data?.find(v => v.machineId === m.id)?.count} /> },
       { title: 'قطع الماكينة', render: m => can(user, 'catalog.view') && can(user, 'boms.view') ? <Link className="inline-link" to={`/boms?machine=${m.id}`}><ListTree size={17} />{translateUi("قطع الماكينة")}</Link> : '—' },
       { title: 'التركيب الفعلي', render: m => can(user, 'tasks.view') && can(user, 'orders.view') ? <Link className="inline-link" to={`/machines/${m.id}/assembly`}><Wrench size={17} />{translateUi("التركيب وسجل الفك")}</Link> : '—' },
     ]} form={props => <MachineForm {...props} />} />;
