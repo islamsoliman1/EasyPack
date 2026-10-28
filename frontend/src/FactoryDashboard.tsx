@@ -10,6 +10,7 @@ import { type Order } from './OrdersPage';
 import { Busy, Denied, IconButton, QueryError } from './ui';
 import { FileButton } from './Files';
 import { MachineChatButton, useChatUnread } from './MachineChat';
+import { ResourceVisual } from './CatalogMedia';
 
 type Overview = { metrics: Record<string, number>; states: { status: string; count: number }[] };
 const states: Record<string, string> = { DRAFT: 'مسودة', OPEN: 'مفتوح', IN_PROGRESS: 'قيد التجميع', AWAITING_TESTING: 'بانتظار تجربة التشغيل', TESTING: 'قيد تجربة التشغيل', REWORK: 'معالجة بعد التجربة', COMPLETED: 'مكتمل', CANCELLED: 'ملغي' };
@@ -58,6 +59,7 @@ export function FactoryDashboardPage() {
           const percent = released && order.requiredCount ? Math.min(100, Math.round(order.installedCount / order.requiredCount * 100)) : 0;
           return <article className="factory-machine" key={machine.id}>
             <div className="factory-machine-top"><Factory size={24} /><span className={`badge ${machine.active ? 'active' : 'inactive'}`}>{t(machine.active ? 'نشط' : 'مؤرشف')}</span></div>
+            <ResourceVisual kind="MACHINE" id={machine.id} name={machine.name} />
             <span className="record-code" dir="ltr">{machine.serialNumber}</span><h3>{f(machine.name)}</h3><p className="muted">{f(machine.modelName)}</p><p className="factory-location"><MapPin size={15} />{f(machine.location || 'لم يُحدد الموقع')}</p>
             {seeOrders && (orders.isPending ? <Busy /> : orders.error ? <p className="muted">{t('تعذر تحميل تقدم الطلبات.')}</p> : <div className="factory-machine-order">{order ? <><Link className="inline-link" to={`/orders/${order.id}`}>{f(order.title)}</Link><span className="badge draft">{t(order.deliveredAt ? 'تم التسليم' : states[order.status])}</span><progress aria-label={t('اكتمال تجميع {{v0}}', { v0: machine.serialNumber })} value={percent} max={100} /><span>{t('اكتمال التجميع')}: {f(percent)}%</span><small>{t('التسليم:')} {dateFormatter({ dateStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date(order.deliveryAt))}</small>{!order.deliveredAt && released && new Date(order.deliveryAt).getTime() < Date.now() && <small className="field-error">{t('متأخر عن موعد التسليم')}</small>}</> : <p className="muted">{t('بدون طلب')}</p>}</div>)}
             <div className="factory-machine-actions"><MachineChatButton id={machine.id} name={machine.name} unread={counts.get(machine.id)} /><FileButton kind="MACHINE" id={machine.id} name={machine.name} /></div>

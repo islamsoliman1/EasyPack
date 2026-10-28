@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useQuery } from './localizedQuery';
 import { MessageCircle, Send } from 'lucide-react';
 import { api } from './api';
+import { ResourceVisual } from './CatalogMedia';
 import { useAuth } from './access';
 import { dateFormatter, translateUi as t, useLanguage } from './i18n';
 import { Busy, ErrorBox, Modal, QueryError } from './ui';
@@ -18,9 +19,9 @@ export function MachineChatButton({ id, name, unread = 0 }: { id: string; name: 
   const [open, setOpen] = useState(false);
   return <><button type="button" className="machine-chat-button" aria-label={t('محادثة {{v0}}', { v0: name })} onClick={() => setOpen(true)}>
     <MessageCircle size={18} /><span>{t('المحادثة')}</span>{unread > 0 && <b className="chat-unread">{unread > 99 ? '99+' : unread}</b>}
-  </button>{open && <Modal title={t('محادثة {{v0}}', { v0: name })} close={() => setOpen(false)}><MachineChat key={id} id={id} /></Modal>}</>;
+  </button>{open && <Modal title={t('محادثة {{v0}}', { v0: name })} close={() => setOpen(false)}><MachineChat key={id} id={id} name={name} /></Modal>}</>;
 }
-function MachineChat({ id }: { id: string }) {
+function MachineChat({ id, name }: { id: string; name: string }) {
   useLanguage();
   const { user } = useAuth(), client = useQueryClient();
   const endpoint = `/machines/${id}/chat`, key = ['machine-chat', id];
@@ -45,7 +46,7 @@ function MachineChat({ id }: { id: string }) {
     mark(); window.addEventListener('focus', mark); document.addEventListener('visibilitychange', mark);
     return () => { window.removeEventListener('focus', mark); document.removeEventListener('visibilitychange', mark); };
   }, [latest, endpoint, client]);
-  return <div className="modal-body machine-chat"><p className="muted">{t('محادثة داخلية لمستخدمي النظام المصرح لهم بعرض الماكينات. التحديث كل 5 ثوانٍ.')}</p><ErrorBox error={error} />
+  return <div className="modal-body machine-chat"><div className="record-with-visual"><ResourceVisual kind="MACHINE" id={id} name={name} compact /><strong>{name}</strong></div><p className="muted">{t('محادثة داخلية لمستخدمي النظام المصرح لهم بعرض الماكينات. التحديث كل 5 ثوانٍ.')}</p><ErrorBox error={error} />
     {query.isPending ? <Busy /> : query.error ? <QueryError error={query.error} retry={() => void query.refetch()} /> : <>
       {query.data?.hasMore && olderMore && <button disabled={loadingOlder} onClick={async () => {
         setLoadingOlder(true); setError(null);
